@@ -1,114 +1,56 @@
-# REST API Fundamentals
+# DecodeLabs — Database Integration (CRUD)
 
-**DecodeLabs | Backend Development | Project 1 | Batch 2026**
-
-A beginner-friendly REST API built with Node.js and Express.js. It demonstrates a local server, GET and POST routes, JSON responses, basic validation, and testing with Postman.
+A Laravel user directory demonstrating permanent SQL storage, Eloquent ORM, server-side validation, and complete web and JSON CRUD workflows. The dashboard opens in dark mode and remembers the theme choice in the browser.
 
 ## Requirements
 
-- Node.js (LTS version recommended)
-- npm (included with Node.js)
-- Postman (for API testing)
+- PHP 8.3 or newer
+- Composer
+- MySQL 8+ (or another Laravel-supported SQL database)
+- Node.js and npm (only needed when changing/building frontend assets)
 
-## Run the project
+## Run locally
 
-1. Extract the ZIP file.
-2. Open the `REST-API-Fundamentals` folder in VS Code.
-3. Open the terminal in that folder.
-4. Install dependencies:
+1. Install dependencies: `composer install`.
+2. Copy `.env.example` to `.env`, set `APP_KEY` with `php artisan key:generate`, and configure `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD` for a running database.
+3. Create the configured database, then apply migrations: `php artisan migrate`.
+4. Start the application: `php artisan serve`.
+5. Open `http://127.0.0.1:8000`.
 
-   ```bash
-   npm install
-   ```
+The schema uses a unique email address, a nonnegative age, an active status that defaults to true, a securely hashed password, and automatic creation/update timestamps. Validation runs on the server for browser forms and API requests.
 
-5. Start the server:
+## JSON API
 
-   ```bash
-   npm start
-   ```
+Requests use the `/api` prefix and should send `Accept: application/json`. Create and update requests should send JSON.
 
-6. Keep the terminal running. The API will be available at `http://localhost:3000`.
+| Method | Endpoint | Operation |
+| --- | --- | --- |
+| `GET` | `/api/users` | List users (paginated; optional `per_page`, 1–100) |
+| `POST` | `/api/users` | Create a user |
+| `GET` | `/api/users/{id}` | Read one user |
+| `PUT` / `PATCH` | `/api/users/{id}` | Update supplied fields |
+| `DELETE` | `/api/users/{id}` | Delete a user |
 
-## API endpoints
-
-### 1. Check the API
-
-- Method: `GET`
-- URL: `http://localhost:3000/`
-
-### 2. Get all products
-
-- Method: `GET`
-- URL: `http://localhost:3000/products`
-- Expected status: `200 OK`
-
-Example response:
+Example create request:
 
 ```json
 {
-  "success": true,
-  "count": 2,
-  "data": [
-    {
-      "id": 1,
-      "name": "Wireless Mouse",
-      "price": 1200,
-      "category": "Electronics"
-    },
-    {
-      "id": 2,
-      "name": "Notebook",
-      "price": 250,
-      "category": "Stationery"
-    }
-  ]
+  "name": "Ayesha Khan",
+  "email": "ayesha@example.com",
+  "age": 24,
+  "is_active": true,
+  "password": "a-long-password",
+  "password_confirmation": "a-long-password"
 }
 ```
 
-### 3. Create a product
+The API returns `201` on create, `200` on reads and updates, `204` on delete, `409` if an email is already in use, `422` for other invalid input, and `404` for a missing user. Passwords and remember tokens are never included in user responses.
 
-- Method: `POST`
-- URL: `http://localhost:3000/products`
-- In Postman, select **Body → raw → JSON**.
-- Expected status: `201 Created`
+Import [`postman/Database Integration CRUD.postman_collection.json`](postman/Database%20Integration%20CRUD.postman_collection.json) into Postman and run its requests in order to exercise create, duplicate rejection, list/read, update, delete, and the deleted-record check. It generates and then removes a uniquely named verification user.
 
-Request body:
+## Database design notes
 
-```json
-{
-  "name": "Keyboard",
-  "price": 1800,
-  "category": "Electronics"
-}
-```
-
-The response includes the newly created product and its generated ID.
-
-### 4. Test validation
-
-Send a POST request with a missing or invalid field, for example:
-
-```json
-{
-  "name": "",
-  "price": -10,
-  "category": "Electronics"
-}
-```
-
-Expected status: `400 Bad Request`.
-
-### 5. Test an unknown route
-
-Try `GET http://localhost:3000/unknown`.
-
-Expected status: `404 Not Found`, with a JSON error message.
-
-## Postman collection
-
-Import `postman/REST-API-Fundamentals.postman_collection.json` into Postman. Start the server first, then run the requests.
-
-## Notes
-
-- Products are stored in memory, not a database. Products created through POST disappear when the server restarts.
-- The project is intended for local learning and demonstration.
+- SQL is a good fit for user profiles because the fields are structured and email uniqueness can be enforced by a database constraint.
+- Eloquent maps the `User` model to the `users` table and parameterizes queries, which avoids assembling SQL from untrusted input.
+- Migrations version the schema; `created_at` and `updated_at` provide an audit trail.
+- Server-side validation complements database constraints. Age is restricted to 0–130 and email uniqueness is checked before save, while the unique index remains the final guard against duplicate requests arriving at the same time.
